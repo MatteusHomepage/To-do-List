@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>To-do List</title>
+ <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <style>
+  body { 
+    font-family: sans-serif; 
+    display: flex; 
+    justify-content: center; 
+    padding-top: 50px; 
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  
+ 
+  .dark-mode {
+    background-color: #222;
+    color: white;
+  }
+
+  .dark-mode input {
+    background-color: #333;
+    color: white;
+    border: 1px solid #555;
+  }
+  
+  
+  .dark-mode button {
+    background-color: #444;
+    color: white;
+    border: 1px solid #555;
+  }
+
+  
+  .dark-mode li {
+    background-color: #333;
+    color: white;
+    border-bottom: 1px solid #444;
+  }
+  
+  .dark-mode li:hover {
+    background-color: #444;
+  }
+  
+
+#todo-list {
+  margin-top: 20px;
+  padding: 0;
+  padding-bottom: 100px; 
+  list-style: none;
+  width: 300px;
+}
+
+  li {
+    background: #f4f4f4;
+    border-bottom: 1px solid #ddd;
+    padding: 10px;
+    cursor: pointer;
+    margin-bottom: 5px;
+    border-radius: 5px;
+    transition: 0.2s;
+    user-select: none; 
+  }
+  
+  li:hover { background-color: #e0e0e0; }
+
+  .done {
+    text-decoration: line-through;
+    color: gray;
+    opacity: 0.6;
+  }
+
+  .fall-away {
+    opacity: 0;
+    transform: translateX(50px);
+    transition: all 0.5s ease;
+  }
+
+  input { 
+    padding: 10px; 
+    width: 200px; 
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    outline: none; 
+  }
+  
+  button { 
+    padding: 10px; 
+    cursor: pointer; 
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #eee;
+  }
+
+
+footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  font-size: 14px;
+  color: #666;
+  padding-bottom: 20px;
+  padding-top: 20px;
+  background-color: white;
+  
+  
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.dark-mode footer {
+  background-color: #222; 
+  color: #aaa; 
+}
+
+.footer-links {
+  margin-top: 10px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.footer-links a {
+  text-decoration: none;
+  color: #333;
+  padding: 5px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #eee;
+  font-size: 12px;
+  
+  
+ 
+  transition: all 0.3s ease;
+}
+
+.footer-links a:hover {
+  background-color: #ddd;
+}
+
+
+.dark-mode .footer-links a {
+  background-color: #444;
+  color: white;
+  border-color: #555;
+}
+
+.dark-mode .footer-links a:hover {
+  background-color: #555;
+}
+
+    
+
+
+#mobileThemeBtn {
+  display: none;
+  margin-left: 5px; 
+
+
+@media (max-width: 600px) {
+  
+  #todo-list {
+    width: 90vw; 
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  input {
+    width: 50%; 
+  }
+
+  #mobileThemeBtn {
+    display: inline-block;
+  }
+
+  p {
+    display: none;
+  }
+  
+  footer {
+    font-size: 12px;
+  }
+}
+</style>
+</head>
+<body>
+
+<div>
+  <input id="taskInput" type="text" placeholder="New Task...">
+  <button id="addBtn">Add</button>
+  <button id="mobileThemeBtn">🌓</button>
+  <ul id="todo-list"></ul>
+</div>
+
+ <footer>
+  <p>Created by Matteus Aydin 2026</p>
+  <p style="font-size: 12px; opacity: 0.8; margin-top: 5px;">Press 'M' to toggle theme</p>
+
+ 
+  
+</footer>
+<script>
+  const input = document.getElementById("taskInput");
+  const btn = document.getElementById("addBtn");
+  const list = document.getElementById("todo-list");
+
+ 
+  const savedTasks = localStorage.getItem("myTasks");
+  if (savedTasks) {
+      const parsedTasks = JSON.parse(savedTasks);
+      parsedTasks.forEach(function(taskText) {
+          createItem(taskText);
+      });
+  }
+
+ 
+  if (localStorage.getItem("darkMode") === "enabled") {
+      document.body.classList.add("dark-mode");
+  }
+
+  input.addEventListener("keydown", function(event) {
+      if (event.key === "Enter") {
+          btn.click(); 
+      }
+  });
+
+  btn.addEventListener("click", function() {
+      const text = input.value;
+      if (text === "") return;
+
+      createItem(text);     
+      saveToStorage();      
+      
+      input.value = "";
+  });
+
+  function createItem(text) {
+      const newItem = document.createElement("li");
+      newItem.innerText = text;
+      
+      newItem.addEventListener("click", function() {
+          newItem.classList.add("done");
+          
+          setTimeout(function() {
+              newItem.classList.add("fall-away");
+          }, 200);
+
+          setTimeout(function() {
+              newItem.remove(); 
+              saveToStorage(); 
+          }, 700);
+      });
+
+      list.appendChild(newItem);
+  }
+
+  function saveToStorage() {
+      const allItems = list.querySelectorAll("li");
+      const tasksArray = [];
+      
+      allItems.forEach(function(item) {
+          if (!item.classList.contains("fall-away")) {
+              tasksArray.push(item.innerText);
+          }
+      });
+
+      localStorage.setItem("myTasks", JSON.stringify(tasksArray));
+  }
+
+  document.addEventListener("keydown", function(event) {
+      
+      if (event.target.tagName === "INPUT" || event.target.tagName === "TEXTAREA") {
+          return; 
+      }
+
+      if (event.key === "m" || event.key === "M") {
+          const body = document.body;
+          body.classList.toggle("dark-mode");
+          
+          if (body.classList.contains("dark-mode")) {
+              localStorage.setItem("darkMode", "enabled");
+          } else {
+              localStorage.setItem("darkMode", "disabled");
+          }
+      }
+  });
+
+  const mobileBtn = document.getElementById("mobileThemeBtn");
+
+  mobileBtn.addEventListener("click", function() {
+      const body = document.body;
+      body.classList.toggle("dark-mode");
+      
+      if (body.classList.contains("dark-mode")) {
+          localStorage.setItem("darkMode", "enabled");
+      } else {
+          localStorage.setItem("darkMode", "disabled");
+      }
+  });
+ 
+</script>
+
+</body>
+</html>
