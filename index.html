@@ -169,9 +169,41 @@
       font-size: 12px;
     }
   }
+
+  #authBar {
+  position: fixed;
+  top: 15px;
+  right: 15px;
+  z-index: 1000;
+}
+
+#loginBtn {
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background: #eee;
+  cursor: pointer;
+}
+
+.dark-mode #loginBtn {
+  background: #444;
+  color: white;
+  border-color: #555;
+}
+
+@media (max-width: 768px) {
+  #authBar {
+    top: 10px;
+    right: 10px;
+  }
+}
+
 </style>
 </head>
 <body>
+<div id="authBar">
+  <button id="loginBtn">Log in</button>
+</div>
 
 <div>
   <input id="taskInput" type="text" placeholder="New Task...">
@@ -188,19 +220,16 @@
   </div>
 </footer>
 
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>  
 <script>
   const input = document.getElementById("taskInput");
   const btn = document.getElementById("addBtn");
   const list = document.getElementById("todo-list");
   const mobileBtn = document.getElementById("mobileThemeBtn");
 
-  const savedTasks = localStorage.getItem("myTasks");
-  if (savedTasks) {
-      const parsedTasks = JSON.parse(savedTasks);
-      parsedTasks.forEach(function(taskText) {
-          createItem(taskText);
-      });
-  }
+ 
 
   if (localStorage.getItem("darkMode") === "enabled") {
       document.body.classList.add("dark-mode");
@@ -212,48 +241,54 @@
       }
   });
 
-  btn.addEventListener("click", function() {
-      const text = input.value;
-      if (text === "") return;
+btn.addEventListener("click", function() {
+  if (!currentUser) return;
+  const text = input.value;
+  if (text === "") return;
 
-      createItem(text);     
-      saveToStorage();      
-      
-      input.value = "";
+  db.collection("users")
+    .doc(currentUser.uid)
+    .collection("todos")
+    .add({ text });
+
+  input.value = "";
+});
+
+function createItem(text, id) {
+  const newItem = document.createElement("li");
+  newItem.innerText = text;
+
+  newItem.addEventListener("click", function() {
+    newItem.classList.add("done");
+    setTimeout(() => {
+      newItem.classList.add("fall-away");
+    }, 200);
+    setTimeout(() => {
+      db.collection("users")
+        .doc(currentUser.uid)
+        .collection("todos")
+        .doc(id)
+        .delete();
+    }, 700);
   });
 
-  function createItem(text) {
-      const newItem = document.createElement("li");
-      newItem.innerText = text;
-      
-      newItem.addEventListener("click", function() {
-          newItem.classList.add("done");
-          
-          setTimeout(function() {
-              newItem.classList.add("fall-away");
-          }, 200);
+  list.appendChild(newItem);
+}
 
-          setTimeout(function() {
-              newItem.remove(); 
-              saveToStorage(); 
-          }, 700);
+
+function loadTasks() {
+  list.innerHTML = "";
+  db.collection("users")
+    .doc(currentUser.uid)
+    .collection("todos")
+    .onSnapshot(snapshot => {
+      list.innerHTML = "";
+      snapshot.forEach(doc => {
+        createItem(doc.data().text, doc.id);
       });
+    });
+}
 
-      list.appendChild(newItem);
-  }
-
-  function saveToStorage() {
-      const allItems = list.querySelectorAll("li");
-      const tasksArray = [];
-      
-      allItems.forEach(function(item) {
-          if (!item.classList.contains("fall-away")) {
-              tasksArray.push(item.innerText);
-          }
-      });
-
-      localStorage.setItem("myTasks", JSON.stringify(tasksArray));
-  }
 
   document.addEventListener("keydown", function(event) {
       if (event.target.tagName === "INPUT" || event.target.tagName === "TEXTAREA") {
@@ -282,6 +317,30 @@
           localStorage.setItem("darkMode", "disabled");
       }
   });
+
+  const loginBtn = document.getElementById("loginBtn");
+
+loginBtn.onclick = () => {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider);
+};
+
+auth.onAuthStateChanged(user => {
+  if (user) {
+    currentUser = user;
+    loginBtn.innerText = "Log out";
+    loadTasks();
+  } else {
+    currentUser = null;
+    list.innerHTML = "";
+    loginBtn.innerText = "Log in";
+  }
+});
+
+loginBtn.addEventListener("click", () => {
+  if (currentUser) auth.signOut();
+});
+
 </script>
 
 </body>
